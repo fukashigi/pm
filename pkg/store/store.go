@@ -79,3 +79,35 @@ func (h Handle) Gets(p string) ([]Param, error) {
 	}
 	return pp, nil
 }
+
+// Put ...
+func (h Handle) Put(p, v string, encrypt bool) error {
+	typ := "String"
+	if encrypt {
+		typ = "SecureString"
+	}
+	i := &ssm.PutParameterInput{
+		Name:      aws.String(p),
+		Value:     aws.String(v),
+		Type:      ssm.ParameterType(typ),
+		Overwrite: aws.Bool(true),
+	}
+	r := h.SSM.PutParameterRequest(i)
+	_, err := r.Send(context.Background())
+	if err != nil {
+		return fmt.Errorf("cant write param: %w", err)
+	}
+	return nil
+}
+
+// Del ...
+func (h Handle) Del(p string) error {
+	r := h.SSM.DeleteParameterRequest(&ssm.DeleteParameterInput{
+		Name: aws.String(p),
+	})
+	_, err := r.Send(context.Background())
+	if err != nil {
+		return fmt.Errorf("cant delete param: %w", err)
+	}
+	return nil
+}
