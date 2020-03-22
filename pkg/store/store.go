@@ -16,15 +16,18 @@ type Handle struct {
 	SSM ssmiface.ClientAPI
 }
 
-// Param is a single AWS Parameter Store Parameter ;)
-type Param struct {
-	Path      string
-	Value     string
-	Encrypted bool
+type param struct {
+	path      string
+	value     string
+	encrypted bool
 }
 
-// New returns a functioning Handle and an error. If the error is not nil, the
-// Handle probably doesn't work.
+// Params ...
+type Params struct {
+	pp []param
+}
+
+// New ...
 func New() (Handle, error) {
 	h := Handle{}
 	cfg, err := external.LoadDefaultAWSConfig()
@@ -35,79 +38,65 @@ func New() (Handle, error) {
 	return h, nil
 }
 
-// Get takes a path and returns the parameter at that location as a Param and
-// an error.
-func (h Handle) Get(path string, decrypt bool) (Param, error) {
-	r := h.SSM.GetParameterRequest(&ssm.GetParameterInput{
-		Name: aws.String(path),
-	})
-	o, err := r.Send(context.Background())
-	if err != nil {
-		return Param{}, fmt.Errorf("cant get param: %w", err)
-	}
-	p := Param{
-		Path:  path,
-		Value: *o.Parameter.Value,
-	}
-	if o.Parameter.Type == "SecureString" {
-		p.Encrypted = true
-	}
-	return p, nil
-}
-
-// Gets ...
-func (h Handle) Gets(p string) ([]Param, error) {
+// Get ...
+func (h Handle) Get(p string) (Params, error) {
 	i := &ssm.GetParametersByPathInput{
 		Path:      aws.String(p),
 		Recursive: aws.Bool(true),
 	}
 	r := h.SSM.GetParametersByPathRequest(i)
 	pg := ssm.NewGetParametersByPathPaginator(r)
-	pp := []Param{}
+	pp := []param{}
 	for pg.Next(context.Background()) {
 		o := pg.CurrentPage()
 		for _, p := range o.Parameters {
-			np := Param{Path: *p.Name, Value: *p.Value}
+			np := param{path: *p.Name, value: *p.Value}
 			if p.Type == "SecureString" {
-				np.Encrypted = true
+				np.encrypted = true
 			}
 			pp = append(pp, np)
 		}
 	}
 	if err := pg.Err(); err != nil {
-		return pp, fmt.Errorf("cant get params: %w", err)
+		return Params{}, fmt.Errorf("cant get params: %w", err)
 	}
-	return pp, nil
+	return Params{pp: pp}, nil
 }
 
-// Put ...
-func (h Handle) Put(p, v string, encrypt bool) error {
-	typ := "String"
-	if encrypt {
-		typ = "SecureString"
-	}
-	i := &ssm.PutParameterInput{
-		Name:      aws.String(p),
-		Value:     aws.String(v),
-		Type:      ssm.ParameterType(typ),
-		Overwrite: aws.Bool(true),
-	}
-	r := h.SSM.PutParameterRequest(i)
-	_, err := r.Send(context.Background())
-	if err != nil {
-		return fmt.Errorf("cant write param: %w", err)
+// Save ...
+func (h Handle) Save(pp Params) error {
+	for _, p := range pp.pp { // TODO is there a putparameters?
+		typ := "String"
+		if p.encrypted {
+			typ = "SecureString"
+		}
+		i := &ssm.PutParameterInput{
+			Name:      aws.String(p.path),
+			Value:     aws.String(p.value),
+			Type:      ssm.ParameterType(typ),
+			Overwrite: aws.Bool(true),
+		}
+		r := h.SSM.PutParameterRequest(i)
+		_, err := r.Send(context.Background())
+		if err != nil {
+			// TODO collect errors
+			return fmt.Errorf("cant write param: %w", err)
+		}
 	}
 	return nil
 }
 
-// Del ...
-func (h Handle) Del(p string) error {
-	r := h.SSM.DeleteParameterRequest(&ssm.DeleteParameterInput{
-		Name: aws.String(p),
-	})
-	_, err := r.Send(context.Background())
-	if err != nil {
-		return fmt.Errorf("cant delete param: %w", err)
+// Delete ...
+func (h Handle) Delete(pp Params) error {
+	for _, p := range pp.pp {
+		r := h.SSM.DeleteParameterRequest(&ssm.DeleteParameterInput{
+			Name: aws.String(p.path),
+		})
+		_, err := r.Send(context.Background())
+		if err != nil {
+			// TODO collect errors
+			return fmt.Errorf("cant delete param: %w", err)
+		}
 	}
 	return nil
 }
