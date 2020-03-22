@@ -27,6 +27,21 @@ type Params struct {
 	pp []param
 }
 
+// Union ...
+func (pp Params) Union(ppb Params) Params {
+	return pp
+}
+
+// Inter ...
+func (pp Params) Inter(ppb Params) Params {
+	return pp
+}
+
+// Rekey ...
+func (pp Params) Rekey(oldPrefix, newPrefix string) Params {
+	return pp
+}
+
 // New ...
 func New() (Handle, error) {
 	h := Handle{}
