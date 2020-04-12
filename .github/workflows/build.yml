@@ -26,7 +26,7 @@ jobs:
         run: go get -v -t -d ./...
 
       - name: test
-        run: cd pkg/store && go test
+        run: go test ./...
 
       - name: build
         run: go build -v .
