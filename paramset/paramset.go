@@ -1,6 +1,8 @@
 package paramset
 
 import (
+	"github.com/aws/aws-sdk-go-v2/aws/external"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/ssmiface"
 )
 
@@ -11,8 +13,8 @@ type Services struct {
 
 // ParamSet ...
 type ParamSet struct {
-	Svc Services
-	pp  []Param
+	S  Services
+	pp []Param
 }
 
 // Param ...
@@ -21,6 +23,19 @@ type Param struct {
 	Val  string
 	Typ  string
 	Ver  string
+}
+
+// New returns a new, empty ParamSet with a default Services struct.
+// If anything goes wrong setting up the Services struct, the empty ParamSet
+// is returned _without_ a Services struct and the error is dropped.
+func New() ParamSet {
+	p := ParamSet{pp: []Param{}}
+	cfg, err := external.LoadDefaultAWSConfig()
+	if err != nil {
+		return p
+	}
+	p.S = Services{SSM: ssm.New(cfg)}
+	return p
 }
 
 // Len returns the length (cardinality) of the set.
