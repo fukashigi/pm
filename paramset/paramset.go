@@ -1,27 +1,36 @@
+// Package paramset provides a wrapper for handling AWS Parameter Store
+// parameters. It is designed to support a CLI.
+//
+// Use New() to create "connected" ParamSet structs. Use the methods to read
+// and write from and to aws accounts. NewFromCfg() might be handy too.
 package paramset
 
 import (
+	"errors"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/ssmiface"
 )
 
-// Services ...
+// Services holds all of the AWS guff.
 type Services struct {
 	SSM ssmiface.ClientAPI
 }
 
-// ParamSet ...
+// ParamSet is the big show ~ it's a shitty set implementation and some
+// domain-specific stuff. Get one via New() and use the methods to do the work.
 type ParamSet struct {
 	S  Services
 	pp []Param
 }
 
-// Param ...
+// Param is a single parameter. Probably don't use this type directly.
 type Param struct {
 	Path string
 	Val  string
-	Typ  string
+	Typ  string // String, StringList, SecureString
 	Ver  string
 }
 
@@ -36,6 +45,41 @@ func New() ParamSet {
 	}
 	p.S = Services{SSM: ssm.New(cfg)}
 	return p
+}
+
+// NewFromCfg does the same thing as New(), but the caller provides an AWS
+// configuration type ~ probably to control the AWS account used by the
+// ParamSet.
+func NewFromCfg(cfg aws.Config) ParamSet {
+	return ParamSet{
+		pp: []Param{},
+		S:  Services{SSM: ssm.New(cfg)},
+	}
+}
+
+// Get ...
+func Get(path string) (ParamSet, error) {
+	return ParamSet{pp: []Param{}}, errors.New("not implemented")
+}
+
+// Gets ...
+func Gets(path string) (ParamSet, error) {
+	return ParamSet{pp: []Param{}}, errors.New("not implemented")
+}
+
+// Read returns a new ParamSet containing p and the parameter at path.
+func (p ParamSet) Read(path string) (ParamSet, error) {
+	return ParamSet{pp: []Param{}}, errors.New("not implemented")
+}
+
+// Reads ...
+func (p ParamSet) Reads(path string) (ParamSet, error) {
+	return ParamSet{pp: []Param{}}, errors.New("not implemented")
+}
+
+// Write ...
+func (p ParamSet) Write() error {
+	return errors.New("not implemented")
 }
 
 // Len returns the length (cardinality) of the set.
